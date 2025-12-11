@@ -5,7 +5,7 @@ namespace food_delivery;
 public class Order
 {
     // order
-    private readonly int id;
+    private int id;
     // TODO create OrderStatus enum and use it instead of string
     private string? status;
     private readonly DateTime createdAt;
@@ -25,7 +25,7 @@ public class Order
     private double totalPrice;
     private double deliveryPrice;
 
-    public int Id => id;
+    public int Id { get => id; set => id = value; }
 
     // TODO use enum OrderStatus
     public string? Status { get => status; set => status = value; }
@@ -48,14 +48,8 @@ public class Order
     public double TotalPrice { get => /*TODO CalculateTotalPrice() instead of -> */ totalPrice; set => totalPrice = value; }
     public double DeliveryPrice { get => /*TODO CalculateDeliveryPrice() instead of -> */ deliveryPrice; set => deliveryPrice = value; }
 
-    public Order(int id, int restaurantId, List<IFood> items, string deliveryAddress, int customerId, string customerNumber)
+    public Order()
     {
-        this.id = id;
-        this.customerId = customerId;
-        this.deliveryAddress = deliveryAddress;
-        this.customerNumber = customerNumber;
-        this.restaurantId = restaurantId;
-        this.items = items;
         Status = "Created"; // use OrderStatus enum
         createdAt = DateTime.Now;
         //CalculateTotalPrice(); uncomment when implemented
