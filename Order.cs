@@ -2,12 +2,20 @@ using System;
 
 namespace food_delivery;
 
+public enum OrderStatus
+{
+    Created,
+    InProgress,
+    Ready,
+    Delivering,
+    Delivered,
+    Cancelled
+}
 public class Order
 {
     // order
     private int id;
-    // TODO create OrderStatus enum and use it instead of string
-    private string? status;
+    private OrderStatus status;
     private readonly DateTime createdAt;
     private DateTime updatedAt;
 
@@ -27,8 +35,7 @@ public class Order
 
     public int Id { get => id; set => id = value; }
 
-    // TODO use enum OrderStatus
-    public string? Status { get => status; set => status = value; }
+    public OrderStatus Status { get => status; set => status = value; }
 
     public DateTime CreatedAt => createdAt;
     public DateTime UpdatedAt { get => updatedAt; set => updatedAt = value; }
@@ -50,11 +57,16 @@ public class Order
 
     public Order()
     {
-        Status = "Created"; // use OrderStatus enum
+        Status = OrderStatus.Created;
         createdAt = DateTime.Now;
         //CalculateTotalPrice(); uncomment when implemented
     }
 
+    public void UpdateStatus(OrderStatus newStatus)
+    {
+        if(Status == OrderStatus.Cancelled) return;
+        Status = newStatus;
+    }
     public double CalculateItemsPrice()
     {
         double price = 0;
