@@ -107,4 +107,14 @@ public class Order
         };
     }
     public double CalculateTotalPrice() => totalPrice = CalculateItemsPrice() + CalculateDeliveryPrice();
+    public void AddItem(IFood food)
+    {
+        Items.Add(food);
+        CalculateTotalPrice();
+    }
+    public void RemoveItem(IFood food)
+    {
+        Items.Remove(food);
+        CalculateTotalPrice();
+    }
 }
