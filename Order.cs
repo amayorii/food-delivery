@@ -52,14 +52,14 @@ public class Order
 
     public List<IFood> Items => items;
 
-    public double TotalPrice { get => /*TODO CalculateTotalPrice() instead of -> */ totalPrice; set => totalPrice = value; }
-    public double DeliveryPrice { get => /*TODO CalculateDeliveryPrice() instead of -> */ deliveryPrice; set => deliveryPrice = value; }
+    public double TotalPrice { get => CalculateTotalPrice(); set => totalPrice = value; }
+    public double DeliveryPrice { get => CalculateDeliveryPrice(); set => deliveryPrice = value; }
 
     public Order()
     {
         Status = OrderStatus.Created;
         createdAt = DateTime.Now;
-        //CalculateTotalPrice(); uncomment when implemented
+        CalculateTotalPrice();
     }
 
     public void UpdateStatus(OrderStatus newStatus)
@@ -95,4 +95,17 @@ public class Order
         if(Status != OrderStatus.Ready)
             throw new InvalidOperationException("Can only assign courier to a ready order.");
     }
+    public double CalculateDeliveryPrice()
+    {
+        double price = CalculateItemsPrice();
+
+        return price switch
+        {
+            >= 500 => 0,
+            >= 350 and < 500 => 50,
+            >= 200 and < 350 => 75,
+            _ => 100,
+        };
+    }
+    public double CalculateTotalPrice() => totalPrice = CalculateItemsPrice() + CalculateDeliveryPrice();
 }
