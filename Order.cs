@@ -59,7 +59,6 @@ public class Order
     {
         Status = OrderStatus.Created;
         createdAt = DateTime.Now;
-        CalculateTotalPrice();
     }
 
     public void UpdateStatus(OrderStatus newStatus)
