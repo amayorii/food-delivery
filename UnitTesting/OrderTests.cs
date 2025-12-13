@@ -65,4 +65,65 @@ public class Tests
 
         Assert.That(order.Status, Is.EqualTo(OrderStatus.Created));
     }
+    [Test]
+    public void UpdateStatus_FromCreatedToInProgress_Changes()
+    {
+        List<IFood> items = new() { new Carbonara(), new PhiladelphiaRoll(), new PizzaDiablo() };
+        Order order = new OrderBuilder().WithId(1)
+                                        .WithRestaurant(1)
+                                        .WithItems(items)
+                                        .WithDeliveryAdress("Test Address")
+                                        .WithCustomerId(1)
+                                        .WithCustomerNumber("+380978312233")
+                                        .Build();
+        order.UpdateStatus(OrderStatus.InProgress);
+
+        Assert.That(order.Status, Is.EqualTo(OrderStatus.InProgress));
+    }
+
+    [Test]
+    public void UpdateStatus_FromCancelledToInProgress_DoesntChange()
+    {
+        List<IFood> items = new() { new Carbonara(), new PhiladelphiaRoll(), new PizzaDiablo() };
+        Order order = new OrderBuilder().WithId(1)
+                                        .WithRestaurant(1)
+                                        .WithItems(items)
+                                        .WithDeliveryAdress("Test Address")
+                                        .WithCustomerId(1)
+                                        .WithCustomerNumber("+380978312233")
+                                        .Build();
+        order.UpdateStatus(OrderStatus.Cancelled);
+        order.UpdateStatus(OrderStatus.InProgress);
+
+        Assert.That(order.Status, Is.Not.EqualTo(OrderStatus.InProgress));
+    }
+
+    [Test]
+    public void AssignCourier_ItemsPriceLessThan200_DoesntSetCourier()
+    {
+        List<IFood> items = new() { new BeefBurger() };
+        Order order = new OrderBuilder().WithId(1)
+                                        .WithRestaurant(1)
+                                        .WithItems(items)
+                                        .WithDeliveryAdress("Test Address")
+                                        .WithCustomerId(1)
+                                        .WithCustomerNumber("+380978312233")
+                                        .Build();
+        order.AssignCourier(42); 
+        Assert.That(order.CourierId, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void ValidateOrder_ItemsPriceBelow200_ThrowsExc()
+    {
+        List<IFood> items = new() { new OnionSoup() };
+        Order order = new OrderBuilder().WithId(1)
+                                        .WithRestaurant(1)
+                                        .WithItems(items)
+                                        .WithDeliveryAdress("Test Address")
+                                        .WithCustomerId(1)
+                                        .WithCustomerNumber("+380978312233")
+                                        .Build();
+         Assert.That(() => order.ValidateOrder(), Throws.Exception.TypeOf<ArgumentException>());
+    }
 }
