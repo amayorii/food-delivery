@@ -34,6 +34,12 @@ public class OrderBuilder
         return this;
     }
 
+    public OrderBuilder WithItems(List<IFood> items)
+    {
+        _order.Items.AddRange(items);
+        return this;
+    }
+
     public Order Build()
     {
         if (string.IsNullOrEmpty(_order.DeliveryAddress) || string.IsNullOrEmpty(_order.CustomerNumber) || _order.RestaurantId == default)
