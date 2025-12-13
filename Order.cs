@@ -77,11 +77,19 @@ public class Order
     }
     public void AssignCourier(int courierId)
     {
-        ValidateOrder();
-        CourierId = courierId;
+        try
+        {
+            ValidateOrder();
+            CourierId = courierId;
+        }
+        catch(Exception ex) {
+            CourierId = 0;
+         Console.WriteLine(ex.Message);
+        }
+       
     }
 
-    private void ValidateOrder()
+    public void ValidateOrder()
     {
         if(string.IsNullOrWhiteSpace(DeliveryAddress))
             throw new ArgumentException("Delivery address cannot be empty.");
