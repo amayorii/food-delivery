@@ -54,17 +54,33 @@ public class Restaurant : IRestaurant
 
     public void StartDelivering()
     {
-        throw new NotImplementedException();
+        if (HasOrder() && HasCourier())
+        {
+            courier.Status = "Delivering";
+            order.UpdateStatus(OrderStatus.Delivering);
+        }
     }
 
     public void DeliverOrder()
     {
-        throw new NotImplementedException();
+        if (order.Status == OrderStatus.Delivering)
+        {
+            order.UpdateStatus(OrderStatus.Delivered);
+            courier.Status = "Available";
+            courier = null!;
+            order = null!;
+        }
     }
 
     public void AssignCourier(ICourier courier)
     {
-        throw new NotImplementedException();
+        if (courier.Status == "Available" && this.courier == null)
+        {
+            this.courier = courier;
+            this.courier.Status = "On order";
+            order.CourierId = Courier.Id;
+            order.UpdateStatus(OrderStatus.InProgress);
+        }
     }
 
     public bool HasCourier() => courier != null;
