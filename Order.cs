@@ -21,8 +21,8 @@ public class Order
 
     // customer
     private int customerId;
-    private string deliveryAddress;
-    private string customerNumber;
+    private string? deliveryAddress;
+    private string? customerNumber;
 
     // performers
     private int restaurantId;
@@ -42,9 +42,9 @@ public class Order
 
     public int CustomerId { get => customerId; set => customerId = value; }
 
-    public string DeliveryAddress { get => deliveryAddress; set => deliveryAddress = value; }
+    public string? DeliveryAddress { get => deliveryAddress; set => deliveryAddress = value; }
 
-    public string CustomerNumber { get => customerNumber; set => customerNumber = value; }
+    public string? CustomerNumber { get => customerNumber; set => customerNumber = value; }
 
     public int RestaurantId { get => restaurantId; set => restaurantId = value; }
 
@@ -63,9 +63,10 @@ public class Order
 
     public void UpdateStatus(OrderStatus newStatus)
     {
-        if(Status == OrderStatus.Cancelled) return;
+        if (Status == OrderStatus.Cancelled) return;
         Status = newStatus;
     }
+
     public double CalculateItemsPrice()
     {
         double price = 0;
@@ -74,6 +75,7 @@ public class Order
 
         return price;
     }
+
     public void AssignCourier(int courierId)
     {
         try
@@ -81,27 +83,29 @@ public class Order
             ValidateOrder();
             CourierId = courierId;
         }
-        catch(Exception ex) {
+        catch (Exception ex)
+        {
             CourierId = 0;
-         Console.WriteLine(ex.Message);
+            Console.WriteLine(ex.Message);
         }
-       
+
     }
 
     public void ValidateOrder()
     {
-        if(string.IsNullOrWhiteSpace(DeliveryAddress))
+        if (string.IsNullOrWhiteSpace(DeliveryAddress))
             throw new ArgumentException("Delivery address cannot be empty.");
 
-        if(Items.Count == 0)
+        if (Items.Count == 0)
             throw new ArgumentException("Order must contain at least one item.");
 
-        if(CalculateItemsPrice() < 200)
+        if (CalculateItemsPrice() < 200)
             throw new ArgumentException("Total items price must be at least 200.");
 
-        if(Status != OrderStatus.Ready)
+        if (Status != OrderStatus.Ready)
             throw new InvalidOperationException("Can only assign courier to a ready order.");
     }
+
     public double CalculateDeliveryPrice()
     {
         double price = CalculateItemsPrice();
@@ -114,12 +118,15 @@ public class Order
             _ => 100,
         };
     }
+
     public double CalculateTotalPrice() => totalPrice = CalculateItemsPrice() + CalculateDeliveryPrice();
+
     public void AddItem(IFood food)
     {
         Items.Add(food);
         CalculateTotalPrice();
     }
+
     public void RemoveItem(IFood food)
     {
         Items.Remove(food);
