@@ -25,7 +25,31 @@ public class Restaurant : IRestaurant
 
     public void ServeOrder()
     {
-        throw new NotImplementedException();
+
+        if(HasOrder() && HasCourier())
+        {
+            if(!Kitchen.HasFreeCooks())
+            {
+                throw new InvalidOperationException("Cannot serve order. No free cooks available.");
+            }
+            foreach(var item in order.Items)
+            {
+                // get dish name: we have IFood.ClassName when getting type, so we need to split by . and take the last part
+                string name = item.GetType().ToString().Split('.').Last();
+
+                if(Kitchen.HasIngredients(name))
+                {
+                    var dish = Kitchen.CookDish(name);
+                    Courier.Bag.Add(dish);
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Cannot serve order. Missing ingredients for {name}.");
+                }
+            }
+
+            order.UpdateStatus(OrderStatus.Ready);
+        }
     }
 
     public void StartDelivering()
@@ -45,4 +69,6 @@ public class Restaurant : IRestaurant
 
     public bool HasCourier() => courier != null;
     public bool HasOrder() => order != null;
+
+   
 }
