@@ -3,6 +3,7 @@ using food_delivery.Food;
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.Reflection;
+using Moq;
 
 namespace UnitTesting;
 
@@ -109,7 +110,7 @@ public class Tests
                                         .WithCustomerId(1)
                                         .WithCustomerNumber("+380978312233")
                                         .Build();
-        order.AssignCourier(42); 
+        order.AssignCourier(42);
         Assert.That(order.CourierId, Is.EqualTo(0));
     }
 
@@ -124,7 +125,7 @@ public class Tests
                                         .WithCustomerId(1)
                                         .WithCustomerNumber("+380978312233")
                                         .Build();
-         Assert.That(() => order.ValidateOrder(), Throws.Exception.TypeOf<ArgumentException>());
+        Assert.That(() => order.ValidateOrder(), Throws.Exception.TypeOf<ArgumentException>());
     }
     [Test]
     public void CalculateTotalPrice_ItemsPriceAbove500_DeliveryPriceIsZero()
