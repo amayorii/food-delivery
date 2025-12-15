@@ -67,16 +67,27 @@ public class Order
 
     public void UpdateStatus(OrderStatus newStatus)
     {
-        if (Status == OrderStatus.Cancelled) return;
+        logger.Info($"Updating status from {Status} to {newStatus} for order with id: {Id}");
+
+        if(Status == OrderStatus.Cancelled)
+        {
+            logger.Warn("Cannot update status of a cancelled order. Order id: " + Id);
+            return;
+        }
         Status = newStatus;
+
+        logger.Info($"Status updated to {Status} for order with id: {Id}");
     }
 
     public double CalculateItemsPrice()
     {
+        logger.Info("Calculating total price of items in the order with id: " + Id);
+
         double price = 0;
-        foreach (var item in Items)
+        foreach(var item in Items)
             price += item.Cost;
 
+        logger.Info($"Total items price calculated: {price}. Order id: {Id}");
         return price;
     }
 
@@ -84,11 +95,15 @@ public class Order
     {
         try
         {
+            logger.Info($"Assigning courier with id {courierId} to order with id {Id}");
+
             ValidateOrder();
             CourierId = courierId;
         }
-        catch (Exception ex)
+        catch(Exception ex)
         {
+            logger.Error($"Error assigning courier to order with id {Id}: {ex.Message}");
+
             CourierId = 0;
             Console.WriteLine(ex.Message);
         }
@@ -97,17 +112,33 @@ public class Order
 
     public void ValidateOrder()
     {
-        if (string.IsNullOrWhiteSpace(DeliveryAddress))
+        logger.Info("Validating order with id: " + Id);
+
+        if(string.IsNullOrWhiteSpace(DeliveryAddress))
+        {
+            logger.Error("Validation failed: Delivery address is empty. Order id: " + Id);
             throw new ArgumentException("Delivery address cannot be empty.");
+        }
 
-        if (Items.Count == 0)
+        if(Items.Count == 0)
+        {
+            logger.Error("Validation failed: No items in the order. Order id: " + Id);
             throw new ArgumentException("Order must contain at least one item.");
+        }
 
-        if (CalculateItemsPrice() < 200)
+        if(CalculateItemsPrice() < 200)
+        {
+            logger.Error("Validation failed: Total items price is below 200. Order id: " + Id);
             throw new ArgumentException("Total items price must be at least 200.");
+        }
 
-        if (Status != OrderStatus.Ready)
+        if(Status != OrderStatus.Ready)
+        {
+            logger.Error("Validation failed: Order status is not 'Ready'. Order id: " + Id);
             throw new InvalidOperationException("Can only assign courier to a ready order.");
+        }
+
+        logger.Info("Order with id " + Id + " validated successfully.");
     }
 
     public double CalculateDeliveryPrice(out double price)
