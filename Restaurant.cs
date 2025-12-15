@@ -25,19 +25,18 @@ public class Restaurant : IRestaurant
 
     public void ServeOrder()
     {
-
-        if(HasOrder() && HasCourier())
+        if (HasOrder() && HasCourier())
         {
-            if(!Kitchen.HasFreeCooks())
+            if (!Kitchen.HasFreeCooks())
             {
                 throw new InvalidOperationException("Cannot serve order. No free cooks available.");
             }
-            foreach(var item in order.Items)
+            foreach (var item in order.Items)
             {
                 // get dish name: we have IFood.ClassName when getting type, so we need to split by . and take the last part
                 string name = item.GetType().ToString().Split('.').Last();
 
-                if(Kitchen.HasIngredients(name))
+                if (Kitchen.HasIngredients(name))
                 {
                     var dish = Kitchen.CookDish(name);
                     Courier.Bag.Add(dish);
@@ -78,13 +77,10 @@ public class Restaurant : IRestaurant
         {
             this.courier = courier;
             this.courier.Status = "On order";
-            order.CourierId = Courier.Id;
-            order.UpdateStatus(OrderStatus.InProgress);
+            order.AssignCourier(Courier.Id); // using order.AssignCourier method instead
         }
     }
 
     public bool HasCourier() => courier != null;
     public bool HasOrder() => order != null;
-
-   
 }
