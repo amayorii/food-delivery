@@ -112,6 +112,7 @@ public class Order
 
     public double CalculateDeliveryPrice(out double price)
     {
+        logger.Info("Calculating delivery price for order with id: " + Id);
         price = CalculateItemsPrice();
 
         deliveryPrice = price switch
@@ -122,24 +123,38 @@ public class Order
             _ => 100,
         };
 
+        logger.Info($"Delivery price calculated: {deliveryPrice}. Order id: {Id}");
         return deliveryPrice;
     }
 
     public double CalculateTotalPrice()
     {
+        logger.Info("Calculating total order price for order with id: " + Id);
+
         totalPrice = CalculateDeliveryPrice(out double price) + price;
+
+        logger.Info($"Total order price calculated: {totalPrice}. Order id: {Id}");
+
         return totalPrice;
     }
 
     public void AddItem(IFood food)
     {
+        logger.Info($"Adding item to order with id: {Id}");
+
         Items.Add(food);
         CalculateTotalPrice();
+
+        logger.Info($"Item added to order with id: {Id}");
     }
 
     public void RemoveItem(IFood food)
     {
+        logger.Info($"Removing item from order with id: {Id}");
+
         Items.Remove(food);
         CalculateTotalPrice();
+
+        logger.Info($"Item removed from order with id: {Id}");
     }
 }
