@@ -74,18 +74,50 @@ public class Restaurant : IRestaurant
 
     public void DeliverOrder()
     {
-        order.UpdateStatus(OrderStatus.Delivered);
-        courier.Status = "Available";
-        logger.Info($"Order with id {order.Id} delivered successfully. Courier {courier.Id} is now available.");
-        courier = null!;
-        order = null!;
+        if (order == null || courier == null)
+        {
+            logger.Warn("Cannot deliver order. Either order or courier is missing.");
+            return;
+        }
+
+        if (order.Status == OrderStatus.Delivering)
+        {
+            logger.Info($"Delivering order with id {order.Id} by courier {courier.Id}.");
+            order.UpdateStatus(OrderStatus.Delivered);
+            courier.Status = "Available";
+            logger.Info($"Order with id {order.Id} delivered successfully. Courier {courier.Id} is now available.");
+            courier = null!;
+            order = null!;
+        }
+        else
+        {
+            logger.Warn($"Cannot deliver order with id {order.Id}. Order status is {order.Status}, expected {OrderStatus.Delivering}.");
+        }
     }
 
     public void AssignCourier(ICourier courier)
     {
+        if (courier.Status != "Available")
+        {
+            logger.Warn($"Cannot assign courier {courier.Id}. Courier status is {courier.Status}.");
+            return;
+        }
+
+        if (this.courier != null)
+        {
+            logger.Warn($"Cannot assign courier {courier.Id}. Another courier {this.courier.Id} is already assigned.");
+            return;
+        }
+
+        if (!HasOrder())
+        {
+            logger.Warn($"Cannot assign courier {courier.Id}. No order to assign.");
+            return;
+        }
+
         this.courier = courier;
         this.courier.Status = "On order";
-        order.AssignCourier(Courier.Id);
+        order.AssignCourier(Courier.Id); // using order.AssignCourier method instead
         logger.Info($"Courier {courier.Id} assigned to order {order.Id} successfully.");
     }
 
