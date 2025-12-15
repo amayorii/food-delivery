@@ -37,6 +37,7 @@ public class OrderBuilder
     public OrderBuilder WithItems(List<IFood> items)
     {
         _order.Items.AddRange(items);
+        _order.CalculateTotalPrice();
         return this;
     }
 

@@ -1,4 +1,5 @@
 using System;
+using NLog;
 
 namespace food_delivery;
 
@@ -13,6 +14,9 @@ public enum OrderStatus
 }
 public class Order
 {
+    // LOGGER
+    private readonly static Logger logger = LogManager.GetLogger("myAppLoggerRule");
+
     // order
     private int id;
     private OrderStatus status;
@@ -52,8 +56,8 @@ public class Order
 
     public List<IFood> Items => items;
 
-    public double TotalPrice { get => CalculateTotalPrice(); set => totalPrice = value; }
-    public double DeliveryPrice { get => CalculateDeliveryPrice(); set => deliveryPrice = value; }
+    public double TotalPrice { get => totalPrice; set => totalPrice = value; }
+    public double DeliveryPrice { get => deliveryPrice; set => deliveryPrice = value; }
 
     public Order()
     {
@@ -106,20 +110,26 @@ public class Order
             throw new InvalidOperationException("Can only assign courier to a ready order.");
     }
 
-    public double CalculateDeliveryPrice()
+    public double CalculateDeliveryPrice(out double price)
     {
-        double price = CalculateItemsPrice();
+        price = CalculateItemsPrice();
 
-        return price switch
+        deliveryPrice = price switch
         {
             >= 500 => 0,
             >= 350 and < 500 => 50,
             >= 200 and < 350 => 75,
             _ => 100,
         };
+
+        return deliveryPrice;
     }
 
-    public double CalculateTotalPrice() => totalPrice = CalculateItemsPrice() + CalculateDeliveryPrice();
+    public double CalculateTotalPrice()
+    {
+        totalPrice = CalculateDeliveryPrice(out double price) + price;
+        return totalPrice;
+    }
 
     public void AddItem(IFood food)
     {
