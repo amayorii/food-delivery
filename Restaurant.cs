@@ -25,6 +25,7 @@ public class Restaurant : IRestaurant
     {
         this.order = order;
         this.order.UpdateStatus(OrderStatus.InProgress);
+        logger.Info($"Order with id {order.Id} received and set to InProgress.");
     }
 
     public void ServeOrder()
@@ -66,32 +67,26 @@ public class Restaurant : IRestaurant
 
     public void StartDelivering()
     {
-        if (HasOrder() && HasCourier())
-        {
-            courier.Status = "Delivering";
-            order.UpdateStatus(OrderStatus.Delivering);
-        }
+        courier.Status = "Delivering";
+        order.UpdateStatus(OrderStatus.Delivering);
+        logger.Info($"Starting delivery for order with id {order.Id} by courier {courier.Id}. Order status is now {order.Status}.");
     }
 
     public void DeliverOrder()
     {
-        if (order.Status == OrderStatus.Delivering)
-        {
-            order.UpdateStatus(OrderStatus.Delivered);
-            courier.Status = "Available";
-            courier = null!;
-            order = null!;
-        }
+        order.UpdateStatus(OrderStatus.Delivered);
+        courier.Status = "Available";
+        logger.Info($"Order with id {order.Id} delivered successfully. Courier {courier.Id} is now available.");
+        courier = null!;
+        order = null!;
     }
 
     public void AssignCourier(ICourier courier)
     {
-        if (courier.Status == "Available" && this.courier == null)
-        {
-            this.courier = courier;
-            this.courier.Status = "On order";
-            order.AssignCourier(Courier.Id); // using order.AssignCourier method instead
-        }
+        this.courier = courier;
+        this.courier.Status = "On order";
+        order.AssignCourier(Courier.Id);
+        logger.Info($"Courier {courier.Id} assigned to order {order.Id} successfully.");
     }
 
     public bool HasCourier() => courier != null;
