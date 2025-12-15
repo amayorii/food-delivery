@@ -123,4 +123,41 @@ public class RestaurantTests
             Assert.That(restaurant.Courier.Status, Is.EqualTo("Delivering"));
         });
     }
+    [Test]
+    public void ServeOrder_NoFreeCooks_ThrowsExc()
+    {
+        kitchenMock.Setup(k => k.HasFreeCooks()).Returns(false);
+
+        Order order = new OrderBuilder().WithId(1)
+                                        .WithRestaurant(1)
+                                        .WithItems(new List<IFood> { new Carbonara() })
+                                        .WithDeliveryAdress("Test Address")
+                                        .WithCustomerId(1)
+                                        .WithCustomerNumber("+380978312233")
+                                        .Build();
+        restaurant.TakeOrder(order);
+        restaurant.AssignCourier(courierMock.Object);
+
+        var ex = Assert.Throws<InvalidOperationException>(restaurant.ServeOrder);
+        Assert.That(ex.Message, Is.EqualTo("Cannot serve order. No free cooks available."));
+    }
+
+    [Test]
+    public void ServeOrder_ThereAreFreeCooks_ThrowsExc()
+    {
+        kitchenMock.Setup(k => k.HasFreeCooks()).Returns(true);
+        kitchenMock.Setup(k => k.HasIngredients(It.IsAny<string>())).Returns(true);
+
+        Order order = new OrderBuilder().WithId(1)
+                                        .WithRestaurant(1)
+                                        .WithItems(new List<IFood> { new Carbonara() })
+                                        .WithDeliveryAdress("Test Address")
+                                        .WithCustomerId(1)
+                                        .WithCustomerNumber("+380978312233")
+                                        .Build();
+        restaurant.TakeOrder(order);
+        restaurant.AssignCourier(courierMock.Object);
+
+        Assert.That(restaurant.ServeOrder, Throws.Nothing);
+    }
 }
