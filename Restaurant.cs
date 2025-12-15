@@ -1,9 +1,13 @@
 using System;
+using NLog;
 
 namespace food_delivery;
 
 public class Restaurant : IRestaurant
 {
+    // LOGGER
+    private readonly static Logger logger = LogManager.GetLogger("myAppLoggerRule");
+
     private readonly IKitchen kitchen;
     private ICourier courier = null!;
     private Order order = null!;
@@ -25,10 +29,13 @@ public class Restaurant : IRestaurant
 
     public void ServeOrder()
     {
+        logger.Info("Trying to serve order.");
         if (HasOrder() && HasCourier())
         {
+            logger.Info($"Serving order with id {order.Id}.");
             if (!Kitchen.HasFreeCooks())
             {
+                logger.Error($"Cannot serve order with id {order.Id}. No free cooks available.");
                 throw new InvalidOperationException("Cannot serve order. No free cooks available.");
             }
             foreach (var item in order.Items)
@@ -43,11 +50,17 @@ public class Restaurant : IRestaurant
                 }
                 else
                 {
+                    logger.Error($"Cannot serve order {order.Id}. Missing ingredients for {name}.");
                     throw new InvalidOperationException($"Cannot serve order. Missing ingredients for {name}.");
                 }
             }
 
             order.UpdateStatus(OrderStatus.Ready);
+            logger.Info($"Order with id {order.Id} served successfully.");
+        }
+        else
+        {
+            logger.Warn($"Cannot serve order with id {order.Id}. Either order or courier is missing.");
         }
     }
 
