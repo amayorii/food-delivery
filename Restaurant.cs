@@ -15,6 +15,7 @@ public class Restaurant : IRestaurant
     public IKitchen Kitchen => kitchen;
 
     public ICourier Courier => courier;
+    private readonly List<IFood> servedDishes = [];
 
     public Restaurant(IKitchen kitchen)
     {
@@ -31,7 +32,7 @@ public class Restaurant : IRestaurant
     public void ServeOrder()
     {
         logger.Info("Trying to serve order.");
-        if (HasOrder() && HasCourier())
+        if (HasOrder())
         {
             logger.Info($"Serving order with id {order.Id}.");
             if (!Kitchen.HasFreeCooks())
@@ -47,7 +48,7 @@ public class Restaurant : IRestaurant
                 if (Kitchen.HasIngredients(name))
                 {
                     var dish = Kitchen.CookDish(name);
-                    Courier.Bag.Add(dish);
+                    servedDishes.Add(dish);
                 }
                 else
                 {
@@ -67,24 +68,28 @@ public class Restaurant : IRestaurant
 
     public void StartDelivering()
     {
-        courier.Status = "Delivering";
-        order.UpdateStatus(OrderStatus.Delivering);
-        logger.Info($"Starting delivery for order with id {order.Id} by courier {courier.Id}. Order status is now {order.Status}.");
-    }
+        if (HasOrder() && HasCourier())
+        {
+            for (int i = 0; i < servedDishes.Count; i++)
+            {
+                courier.Bag.Add(servedDishes[i]);
+            }
+            servedDishes.Clear();
 
+            courier.Status = "Delivering";
+            order.UpdateStatus(OrderStatus.Delivering);
+            logger.Info($"Starting delivery for order with id {order.Id} by courier {courier.Id}. Order status is now {order.Status}.");
+        }
+    }
     public void DeliverOrder()
     {
-        if (order == null || courier == null)
-        {
-            logger.Warn("Cannot deliver order. Either order or courier is missing.");
-            return;
-        }
-
         if (order.Status == OrderStatus.Delivering)
         {
             logger.Info($"Delivering order with id {order.Id} by courier {courier.Id}.");
+
             order.UpdateStatus(OrderStatus.Delivered);
             courier.Status = "Available";
+
             logger.Info($"Order with id {order.Id} delivered successfully. Courier {courier.Id} is now available.");
             courier = null!;
             order = null!;
@@ -97,29 +102,31 @@ public class Restaurant : IRestaurant
 
     public void AssignCourier(ICourier courier)
     {
-        if (courier.Status != "Available")
-        {
-            logger.Warn($"Cannot assign courier {courier.Id}. Courier status is {courier.Status}.");
-            return;
-        }
-
         if (!HasOrder())
         {
             logger.Warn($"Cannot assign courier {courier.Id}. No order to assign.");
             return;
         }
 
-        try
+        if (courier.Status == "Available" && this.courier == null)
         {
-            order.AssignCourier(courier.Id);
+            try
+            {
+                order.AssignCourier(courier.Id);
 
-            this.courier = courier;
-            this.courier.Status = "On order";
-            logger.Info($"Courier {courier.Id} assigned to order {order.Id} successfully.");
+                this.courier = courier;
+                this.courier.Status = "On order";
+                logger.Info($"Courier {courier.Id} assigned to order {order.Id} successfully.");
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Failed to assign courier: {ex.Message}");
+            }
         }
-        catch (Exception ex)
+        else
         {
-            logger.Error($"Failed to assign courier: {ex.Message}");
+            logger.Warn($"Cannot assign courier {courier.Id}. Courier status is {courier.Status}.");
+            return;
         }
     }
 
