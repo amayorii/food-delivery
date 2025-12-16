@@ -103,22 +103,24 @@ public class Restaurant : IRestaurant
             return;
         }
 
-        if (this.courier != null)
-        {
-            logger.Warn($"Cannot assign courier {courier.Id}. Another courier {this.courier.Id} is already assigned.");
-            return;
-        }
-
         if (!HasOrder())
         {
             logger.Warn($"Cannot assign courier {courier.Id}. No order to assign.");
             return;
         }
 
-        this.courier = courier;
-        this.courier.Status = "On order";
-        order.AssignCourier(Courier.Id); // using order.AssignCourier method instead
-        logger.Info($"Courier {courier.Id} assigned to order {order.Id} successfully.");
+        try
+        {
+            order.AssignCourier(courier.Id);
+
+            this.courier = courier;
+            this.courier.Status = "On order";
+            logger.Info($"Courier {courier.Id} assigned to order {order.Id} successfully.");
+        }
+        catch (Exception ex)
+        {
+            logger.Error($"Failed to assign courier: {ex.Message}");
+        }
     }
 
     public bool HasCourier() => courier != null;
