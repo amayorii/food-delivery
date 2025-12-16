@@ -115,12 +115,6 @@ public class Order
             throw new ArgumentException("Order must contain at least one item.");
         }
 
-        if (CalculateItemsPrice() < 200)
-        {
-            logger.Error("Validation failed: Total items price is below 200. Order id: " + Id);
-            throw new ArgumentException("Total items price must be at least 200.");
-        }
-
         if (Status != OrderStatus.Ready)
         {
             logger.Error("Validation failed: Order status is not 'Ready'. Order id: " + Id);
