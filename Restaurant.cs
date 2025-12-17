@@ -28,6 +28,7 @@ public class Restaurant : IRestaurant
         this.order.UpdateStatus(OrderStatus.InProgress);
         logger.Info($"Order with id {order.Id} received and set to InProgress.");
     }
+
     public void ServeOrder()
     {
         logger.Info("Trying to serve order.");
@@ -113,37 +114,50 @@ public class Restaurant : IRestaurant
         logger.Info($"Order cancelled: {reason}");
         throw new InvalidOperationException($"Order cancelled: {reason}");
     }
+
     public void StartDelivering()
     {
-        if (HasOrder() && HasCourier())
+        if (HasOrder() && HasCourier() && order.Status == OrderStatus.Ready)
         {
-            for (int i = 0; i < servedDishes.Count; i++)
+            // move food to courier
+            if (servedDishes.Count > 0)
             {
-                courier.Bag.Add(servedDishes[i]);
+                courier.Bag.AddRange(servedDishes);
+                servedDishes.Clear();
             }
-            servedDishes.Clear();
 
             courier.Status = "Delivering";
             order.UpdateStatus(OrderStatus.Delivering);
-            logger.Info($"Starting delivery for order with id {order.Id} by courier {courier.Id}. Order status is now {order.Status}.");
+            logger.Info($"Order {order.Id} delivery started.");
+            Console.WriteLine($"Courier #{courier.Id} is delivering Order #{order.Id}.");
+        }
+        else
+        {
+            logger.Warn("Failed to start delivery due to invalid state.");
+            throw new InvalidOperationException("Cannot start delivery. (Check if Order is Ready and Courier is Assigned)");
         }
     }
+
     public void DeliverOrder()
     {
-        if (order.Status == OrderStatus.Delivering)
+        if (HasOrder() && HasCourier() && order.Status == OrderStatus.Delivering)
         {
             logger.Info($"Delivering order with id {order.Id} by courier {courier.Id}.");
 
             order.UpdateStatus(OrderStatus.Delivered);
+
             courier.Status = "Available";
+            courier.Bag.Clear();
 
             logger.Info($"Order with id {order.Id} delivered successfully. Courier {courier.Id} is now available.");
+            Console.WriteLine($"SUCCESS: Order #{order.Id} delivered!");
+
             courier = null!;
             order = null!;
         }
         else
         {
-            logger.Warn($"Cannot deliver order with id {order.Id}. Order status is {order.Status}, expected {OrderStatus.Delivering}.");
+            logger.Warn($"Cannot deliver order with id {order!.Id}. Order status is {order.Status}, expected {OrderStatus.Delivering}.");
         }
     }
 
@@ -151,29 +165,50 @@ public class Restaurant : IRestaurant
     {
         if (!HasOrder())
         {
-            logger.Warn($"Cannot assign courier {courier.Id}. No order to assign.");
+            logger.Warn("Cannot assign courier because no order provided");
+            Console.WriteLine("No order to assign to.");
             return;
         }
 
-        if (courier.Status == "Available" && this.courier == null)
+        if (order.Status == OrderStatus.Cancelled)
+        {
+            Console.WriteLine("Cannot assign courier to a Cancelled order.");
+            logger.Warn("Cannot assign courier to a Cancelled order");
+            return;
+        }
+
+        if (HasCourier())
+        {
+            Console.WriteLine("A courier is already assigned.");
+            logger.Warn("A courier is already assigned");
+            return;
+        }
+
+        if (courier.Status == "Available")
         {
             try
             {
+                if (order.Status != OrderStatus.Ready)
+                {
+                    logger.Warn("Order not ready");
+                    Console.WriteLine("Order not ready.");
+                    return;
+                }
+
                 order.AssignCourier(courier.Id);
 
                 this.courier = courier;
-                this.courier.Status = "On order";
-                logger.Info($"Courier {courier.Id} assigned to order {order.Id} successfully.");
+                this.courier.Status = "OnOrder";
+                Console.WriteLine($"Courier #{courier.Id} assigned.");
             }
             catch (Exception ex)
             {
-                logger.Error($"Failed to assign courier: {ex.Message}");
+                Console.WriteLine($"Assignment failed: {ex.Message}");
             }
         }
         else
         {
-            logger.Warn($"Cannot assign courier {courier.Id}. Courier status is {courier.Status}.");
-            return;
+            Console.WriteLine($"Courier #{courier.Id} is busy.");
         }
     }
 
