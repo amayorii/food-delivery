@@ -32,71 +32,132 @@ public class Restaurant : IRestaurant
     public void ServeOrder()
     {
         logger.Info("Trying to serve order.");
-        if (HasOrder())
+
+        if (!HasOrder())
         {
-            logger.Info($"Serving order with id {order.Id}.");
-            if (!Kitchen.HasFreeCooks())
+            throw new InvalidDataException("No active order to serve.");
+        }
+
+        // calculate all requirements first without cooking
+        var requiredIngredients = new Dictionary<string, int>();
+        foreach (var item in order.Items)
+        {
+            string name = item.GetType().Name;
+            if (!requiredIngredients.ContainsKey(name)) requiredIngredients[name] = 0;
+            requiredIngredients[name]++;
+        }
+
+        // check requirements against kitchen inventory
+        var kitchenInventory = Kitchen.GetInventory();
+        bool missingIngredients = false;
+
+        foreach (var req in requiredIngredients)
+        {
+            // check if dish exist and if enough quantity is available
+            if (!kitchenInventory.TryGetValue(req.Key, out int value) || value < req.Value)
             {
-                logger.Error($"Cannot serve order with id {order.Id}. No free cooks available.");
-                throw new InvalidOperationException("Cannot serve order. No free cooks available.");
+                missingIngredients = true;
+                logger.Warn($"Missing ingredients for {req.Key}. Needed: {req.Value}, Have: {kitchenInventory.GetValueOrDefault(req.Key, 0)}");
+                Console.WriteLine($"[Restaurant] ERROR: Not enough ingredients for {req.Key}!");
+                break;
             }
+        }
+
+        // if missing just cancel order
+        if (missingIngredients)
+        {
+            CancelOrder("Insufficient ingredients");
+            return;
+        }
+
+        // if not missing cook the dishes
+        if (!Kitchen.HasFreeCooks())
+        {
+            throw new InvalidOperationException("[Restaurant] Kitchen is too busy! Try again later.");
+        }
+
+        Console.WriteLine("[Restaurant] Ingredients verified. Cooking started...");
+        try
+        {
             foreach (var item in order.Items)
             {
-                // get dish name: we have IFood.ClassName when getting type, so we need to split by . and take the last part
-                string name = item.GetType().ToString().Split('.').Last();
-
-                if (Kitchen.HasIngredients(name))
-                {
-                    var dish = Kitchen.CookDish(name);
-                    servedDishes.Add(dish);
-                }
-                else
-                {
-                    logger.Error($"Cannot serve order {order.Id}. Missing ingredients for {name}.");
-                    throw new InvalidOperationException($"Cannot serve order. Missing ingredients for {name}.");
-                }
+                string name = item.GetType().Name;
+                var dish = Kitchen.CookDish(name);
+                servedDishes.Add(dish);
             }
 
             order.UpdateStatus(OrderStatus.Ready);
-            logger.Info($"Order with id {order.Id} served successfully.");
+            logger.Info($"Order {order.Id} is cooked and Ready.");
         }
-        else
+        catch (Exception ex)
         {
-            logger.Warn($"Cannot serve order with id {order.Id}. Either order or courier is missing.");
+            logger.Error($"Cooking error: {ex.Message}");
+            CancelOrder($"Cooking error: {ex.Message}");
         }
+    }
+
+    private void CancelOrder(string reason)
+    {
+        Console.WriteLine($"[Restaurant] CANCELLING Order #{order.Id}: {reason}");
+        order.UpdateStatus(OrderStatus.Cancelled);
+
+        if (courier != null)
+        {
+            Console.WriteLine($"[Restaurant] Releasing Courier #{courier.Id}...");
+            courier.Status = "Available";
+            this.courier = null!;
+        }
+
+        servedDishes.Clear();
+        order = null!;
+
+        logger.Info($"Order cancelled: {reason}");
+        throw new InvalidOperationException($"Order cancelled: {reason}");
     }
 
     public void StartDelivering()
     {
-        if (HasOrder() && HasCourier())
+        if (HasOrder() && HasCourier() && order.Status == OrderStatus.Ready)
         {
-            for (int i = 0; i < servedDishes.Count; i++)
+            // move food to courier
+            if (servedDishes.Count > 0)
             {
-                courier.Bag.Add(servedDishes[i]);
+                courier.Bag.AddRange(servedDishes);
+                servedDishes.Clear();
             }
-            servedDishes.Clear();
 
             courier.Status = "Delivering";
             order.UpdateStatus(OrderStatus.Delivering);
-            logger.Info($"Starting delivery for order with id {order.Id} by courier {courier.Id}. Order status is now {order.Status}.");
+            logger.Info($"Order {order.Id} delivery started.");
+            Console.WriteLine($"Courier #{courier.Id} is delivering Order #{order.Id}.");
+        }
+        else
+        {
+            logger.Warn("Failed to start delivery due to invalid state.");
+            throw new InvalidOperationException("Cannot start delivery. (Check if Order is Ready and Courier is Assigned)");
         }
     }
+
     public void DeliverOrder()
     {
-        if (order.Status == OrderStatus.Delivering)
+        if (HasOrder() && HasCourier() && order.Status == OrderStatus.Delivering)
         {
             logger.Info($"Delivering order with id {order.Id} by courier {courier.Id}.");
 
             order.UpdateStatus(OrderStatus.Delivered);
+
             courier.Status = "Available";
+            courier.Bag.Clear();
 
             logger.Info($"Order with id {order.Id} delivered successfully. Courier {courier.Id} is now available.");
+            Console.WriteLine($"SUCCESS: Order #{order.Id} delivered!");
+
             courier = null!;
             order = null!;
         }
         else
         {
-            logger.Warn($"Cannot deliver order with id {order.Id}. Order status is {order.Status}, expected {OrderStatus.Delivering}.");
+            logger.Warn($"Cannot deliver order with id {order!.Id}. Order status is {order.Status}, expected {OrderStatus.Delivering}.");
         }
     }
 
@@ -104,29 +165,50 @@ public class Restaurant : IRestaurant
     {
         if (!HasOrder())
         {
-            logger.Warn($"Cannot assign courier {courier.Id}. No order to assign.");
+            logger.Warn("Cannot assign courier because no order provided");
+            Console.WriteLine("No order to assign to.");
             return;
         }
 
-        if (courier.Status == "Available" && this.courier == null)
+        if (order.Status == OrderStatus.Cancelled)
+        {
+            Console.WriteLine("Cannot assign courier to a Cancelled order.");
+            logger.Warn("Cannot assign courier to a Cancelled order");
+            return;
+        }
+
+        if (HasCourier())
+        {
+            Console.WriteLine("A courier is already assigned.");
+            logger.Warn("A courier is already assigned");
+            return;
+        }
+
+        if (courier.Status == "Available")
         {
             try
             {
+                if (order.Status != OrderStatus.Ready)
+                {
+                    logger.Warn("Order not ready");
+                    Console.WriteLine("Order not ready.");
+                    return;
+                }
+
                 order.AssignCourier(courier.Id);
 
                 this.courier = courier;
-                this.courier.Status = "On order";
-                logger.Info($"Courier {courier.Id} assigned to order {order.Id} successfully.");
+                this.courier.Status = "OnOrder";
+                Console.WriteLine($"Courier #{courier.Id} assigned.");
             }
             catch (Exception ex)
             {
-                logger.Error($"Failed to assign courier: {ex.Message}");
+                Console.WriteLine($"Assignment failed: {ex.Message}");
             }
         }
         else
         {
-            logger.Warn($"Cannot assign courier {courier.Id}. Courier status is {courier.Status}.");
-            return;
+            Console.WriteLine($"Courier #{courier.Id} is busy.");
         }
     }
 
