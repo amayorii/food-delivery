@@ -99,7 +99,7 @@ public class Tests
     }
 
     [Test]
-    public void AssignCourier_ItemsPriceLessThan200_DoesntSetCourier()
+    public void AssignCourier_OrderStatusIsNotReady_DoesntSetCourier()
     {
         List<IFood> items = new() { new BeefBurger() };
         Order order = new OrderBuilder().WithId(1)
@@ -109,12 +109,11 @@ public class Tests
                                         .WithCustomerId(1)
                                         .WithCustomerNumber("+380978312233")
                                         .Build();
-        order.AssignCourier(42);
-        Assert.That(order.CourierId, Is.EqualTo(0));
+        Assert.That(() => order.AssignCourier(42), Throws.Exception.TypeOf<InvalidOperationException>());
     }
 
     [Test]
-    public void ValidateOrder_ItemsPriceBelow200_ThrowsExc()
+    public void ValidateOrder_DishIsNotReady_ThrowsExc()
     {
         List<IFood> items = new() { new OnionSoup() };
         Order order = new OrderBuilder().WithId(1)
@@ -124,7 +123,7 @@ public class Tests
                                         .WithCustomerId(1)
                                         .WithCustomerNumber("+380978312233")
                                         .Build();
-        Assert.That(() => order.ValidateOrder(), Throws.Exception.TypeOf<ArgumentException>());
+        Assert.That(() => order.ValidateOrder(), Throws.Exception.TypeOf<InvalidOperationException>());
     }
     [Test]
     public void CalculateTotalPrice_ItemsPriceAbove500_DeliveryPriceIsZero()
