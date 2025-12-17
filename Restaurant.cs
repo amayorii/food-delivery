@@ -28,42 +28,50 @@ public class Restaurant : IRestaurant
         this.order.UpdateStatus(OrderStatus.InProgress);
         logger.Info($"Order with id {order.Id} received and set to InProgress.");
     }
-
     public void ServeOrder()
     {
         logger.Info("Trying to serve order.");
-        if (HasOrder())
+
+        if (!HasOrder())
         {
-            logger.Info($"Serving order with id {order.Id}.");
-            if (!Kitchen.HasFreeCooks())
+            throw new InvalidDataException("No active order to serve.");
+        }
+
+        // calculate all requirements first without cooking
+        var requiredIngredients = new Dictionary<string, int>();
+        foreach (var item in order.Items)
+        {
+            string name = item.GetType().Name;
+            if (!requiredIngredients.ContainsKey(name)) requiredIngredients[name] = 0;
+            requiredIngredients[name]++;
+        }
+
+        // check requirements against kitchen inventory
+        var kitchenInventory = Kitchen.GetInventory();
+        bool missingIngredients = false;
+
+        foreach (var req in requiredIngredients)
+        {
+            // check if dish exist and if enough quantity is available
+            if (!kitchenInventory.TryGetValue(req.Key, out int value) || value < req.Value)
             {
-                logger.Error($"Cannot serve order with id {order.Id}. No free cooks available.");
-                throw new InvalidOperationException("Cannot serve order. No free cooks available.");
+                missingIngredients = true;
+                logger.Warn($"Missing ingredients for {req.Key}. Needed: {req.Value}, Have: {kitchenInventory.GetValueOrDefault(req.Key, 0)}");
+                Console.WriteLine($"[Restaurant] ERROR: Not enough ingredients for {req.Key}!");
+                break;
             }
+        }
+        Console.WriteLine("[Restaurant] Ingredients verified. Cooking started...");
+       
             foreach (var item in order.Items)
             {
-                // get dish name: we have IFood.ClassName when getting type, so we need to split by . and take the last part
-                string name = item.GetType().ToString().Split('.').Last();
-
-                if (Kitchen.HasIngredients(name))
-                {
-                    var dish = Kitchen.CookDish(name);
-                    servedDishes.Add(dish);
-                }
-                else
-                {
-                    logger.Error($"Cannot serve order {order.Id}. Missing ingredients for {name}.");
-                    throw new InvalidOperationException($"Cannot serve order. Missing ingredients for {name}.");
-                }
+                string name = item.GetType().Name;
+                var dish = Kitchen.CookDish(name);
+                servedDishes.Add(dish);
             }
 
             order.UpdateStatus(OrderStatus.Ready);
-            logger.Info($"Order with id {order.Id} served successfully.");
-        }
-        else
-        {
-            logger.Warn($"Cannot serve order with id {order.Id}. Either order or courier is missing.");
-        }
+            logger.Info($"Order {order.Id} is cooked and Ready.");
     }
 
     public void StartDelivering()
