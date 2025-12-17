@@ -61,8 +61,23 @@ public class Restaurant : IRestaurant
                 break;
             }
         }
+
+        // if missing just cancel order
+        if (missingIngredients)
+        {
+            CancelOrder("Insufficient ingredients");
+            return;
+        }
+
+        // if not missing cook the dishes
+        if (!Kitchen.HasFreeCooks())
+        {
+            throw new InvalidOperationException("[Restaurant] Kitchen is too busy! Try again later.");
+        }
+
         Console.WriteLine("[Restaurant] Ingredients verified. Cooking started...");
-       
+        try
+        {
             foreach (var item in order.Items)
             {
                 string name = item.GetType().Name;
@@ -72,8 +87,32 @@ public class Restaurant : IRestaurant
 
             order.UpdateStatus(OrderStatus.Ready);
             logger.Info($"Order {order.Id} is cooked and Ready.");
+        }
+        catch (Exception ex)
+        {
+            logger.Error($"Cooking error: {ex.Message}");
+            CancelOrder($"Cooking error: {ex.Message}");
+        }
     }
 
+    private void CancelOrder(string reason)
+    {
+        Console.WriteLine($"[Restaurant] CANCELLING Order #{order.Id}: {reason}");
+        order.UpdateStatus(OrderStatus.Cancelled);
+
+        if (courier != null)
+        {
+            Console.WriteLine($"[Restaurant] Releasing Courier #{courier.Id}...");
+            courier.Status = "Available";
+            this.courier = null!;
+        }
+
+        servedDishes.Clear();
+        order = null!;
+
+        logger.Info($"Order cancelled: {reason}");
+        throw new InvalidOperationException($"Order cancelled: {reason}");
+    }
     public void StartDelivering()
     {
         if (HasOrder() && HasCourier())
