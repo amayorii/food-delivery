@@ -42,9 +42,12 @@ public class RestaurantTests
                                         .Build();
 
         restaurant.TakeOrder(order);
-        restaurant.AssignCourier(courierMock.Object);
 
         restaurant.ServeOrder();
+
+        restaurant.AssignCourier(courierMock.Object);
+
+        restaurant.StartDelivering();
 
         Assert.That(restaurant.Courier.Bag, Has.Some.InstanceOf<Carbonara>());
     }
@@ -67,7 +70,6 @@ public class RestaurantTests
                                         .Build();
 
         restaurant.TakeOrder(order);
-        restaurant.AssignCourier(courierMock.Object);
 
         var ex = Assert.Throws<InvalidOperationException>(() => restaurant.ServeOrder());
 
@@ -76,6 +78,10 @@ public class RestaurantTests
     [Test]
     public void AssignCourier_RestaurantAlreadyHasCourier_DoesntReassign()
     {
+        kitchenMock.Setup(k => k.HasIngredients(It.IsAny<string>())).Returns(true);
+
+        kitchenMock.Setup(k => k.HasFreeCooks()).Returns(true);
+
         Order order = new OrderBuilder().WithId(1)
                                         .WithRestaurant(1)
                                         .WithItems(new List<IFood> { new PhiladelphiaRoll() })
@@ -93,6 +99,8 @@ public class RestaurantTests
         secondCourier.Setup(c => c.Status).Returns("Available");
         secondCourier.Setup(c => c.Id).Returns(2);
 
+        restaurant.ServeOrder();
+
         restaurant.AssignCourier(firstCourier.Object);
         restaurant.AssignCourier(secondCourier.Object);
 
@@ -102,6 +110,10 @@ public class RestaurantTests
     [Test]
     public void StartDelivering_Invoke_UpdatesStatuses()
     {
+        kitchenMock.Setup(k => k.HasIngredients(It.IsAny<string>())).Returns(true);
+
+        kitchenMock.Setup(k => k.HasFreeCooks()).Returns(true);
+
         Order order = new OrderBuilder().WithId(1)
                                         .WithRestaurant(1)
                                         .WithItems(new List<IFood> { new PhiladelphiaRoll() })
@@ -113,6 +125,7 @@ public class RestaurantTests
         courierMock.SetupProperty(c => c.Status, "Available");
 
         restaurant.TakeOrder(order);
+        restaurant.ServeOrder();
         restaurant.AssignCourier(courierMock.Object);
 
         restaurant.StartDelivering();
