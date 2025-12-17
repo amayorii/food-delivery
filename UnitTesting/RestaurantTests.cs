@@ -17,6 +17,17 @@ public class RestaurantTests
         kitchenMock = new Mock<IKitchen>();
         courierMock = new Mock<ICourier>();
 
+        var inventory = new Dictionary<string, int>
+        {
+            { "PizzaMeatLovers", 5 },
+            { "BeefBurger", 5 },
+            { "Carbonara", 5 },
+            { "PizzaDiablo", 0 },
+            { "PhiladelphiaRoll", 5 },
+
+        };
+        kitchenMock.Setup(k => k.GetInventory()).Returns(inventory);
+
         courierMock.Setup(c => c.Bag).Returns(new List<IFood>());
         courierMock.Setup(c => c.Status).Returns("Available");
         courierMock.Setup(c => c.Id).Returns(50);
@@ -27,8 +38,6 @@ public class RestaurantTests
     [Test]
     public void ServeOrder_KitchenHasIngredients_FoodInBag()
     {
-        kitchenMock.Setup(k => k.HasIngredients(It.IsAny<string>())).Returns(true);
-
         kitchenMock.Setup(k => k.HasFreeCooks()).Returns(true);
 
         kitchenMock.Setup(k => k.CookDish("Carbonara")).Returns(new Carbonara());
@@ -55,11 +64,7 @@ public class RestaurantTests
     [Test]
     public void ServeOrder_KitchenHasNoIngredients_ThrowsExc()
     {
-        kitchenMock.Setup(k => k.HasIngredients(It.IsAny<string>())).Returns(true);
-
         kitchenMock.Setup(k => k.HasFreeCooks()).Returns(true);
-
-        kitchenMock.Setup(k => k.HasIngredients("PizzaDiablo")).Returns(false);
 
         Order order = new OrderBuilder().WithId(1)
                                         .WithRestaurant(1)
@@ -73,13 +78,12 @@ public class RestaurantTests
 
         var ex = Assert.Throws<InvalidOperationException>(() => restaurant.ServeOrder());
 
-        Assert.That(ex.Message, Does.Contain("Missing ingredients for PizzaDiablo"));
+        Assert.That(ex.Message, Does.Contain("Order cancelled: Insufficient ingredients"));
     }
+
     [Test]
     public void AssignCourier_RestaurantAlreadyHasCourier_DoesntReassign()
     {
-        kitchenMock.Setup(k => k.HasIngredients(It.IsAny<string>())).Returns(true);
-
         kitchenMock.Setup(k => k.HasFreeCooks()).Returns(true);
 
         Order order = new OrderBuilder().WithId(1)
@@ -110,8 +114,6 @@ public class RestaurantTests
     [Test]
     public void StartDelivering_Invoke_UpdatesStatuses()
     {
-        kitchenMock.Setup(k => k.HasIngredients(It.IsAny<string>())).Returns(true);
-
         kitchenMock.Setup(k => k.HasFreeCooks()).Returns(true);
 
         Order order = new OrderBuilder().WithId(1)
@@ -136,6 +138,7 @@ public class RestaurantTests
             Assert.That(restaurant.Courier.Status, Is.EqualTo("Delivering"));
         });
     }
+
     [Test]
     public void ServeOrder_NoFreeCooks_ThrowsExc()
     {
@@ -149,17 +152,15 @@ public class RestaurantTests
                                         .WithCustomerNumber("+380978312233")
                                         .Build();
         restaurant.TakeOrder(order);
-        restaurant.AssignCourier(courierMock.Object);
 
         var ex = Assert.Throws<InvalidOperationException>(restaurant.ServeOrder);
-        Assert.That(ex.Message, Is.EqualTo("Cannot serve order. No free cooks available."));
+        Assert.That(ex.Message, Is.EqualTo("[Restaurant] Kitchen is too busy! Try again later."));
     }
 
     [Test]
     public void ServeOrder_ThereAreFreeCooks_ThrowsExc()
     {
         kitchenMock.Setup(k => k.HasFreeCooks()).Returns(true);
-        kitchenMock.Setup(k => k.HasIngredients(It.IsAny<string>())).Returns(true);
 
         Order order = new OrderBuilder().WithId(1)
                                         .WithRestaurant(1)
